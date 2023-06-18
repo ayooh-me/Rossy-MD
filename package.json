@@ -35,7 +35,7 @@
     },
     "license": "GPL-3.0-or-later",
     "dependencies": {
-        "@adiwajshing/baileys": "github:ArifzynXD/baileys",
+        "@adiwajshing/baileys": "github:ArifzynXD/baileys^6.0.1",
         "@adiwajshing/keyed-db": "^0.2.4",
         "@vitalets/google-translate-api": "^8.0.0",
         "@arugaz/ai2d": "^1.0.1-z.8",
