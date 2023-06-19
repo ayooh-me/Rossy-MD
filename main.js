@@ -2,37 +2,42 @@ process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0';
 import './config.js';
 
 import { createRequire } from "module"; // Bring in the ability to create the 'require' method
-import path, { join } from 'path'
-import { fileURLToPath, pathToFileURL } from 'url'
-import { platform } from 'process'
-global.__filename = function filename(pathURL = import.meta.url, rmPrefix = platform !== 'win32') { return rmPrefix ? /file:\/\/\//.test(pathURL) ? fileURLToPath(pathURL) : pathURL : pathToFileURL(pathURL).toString() }; global.__dirname = function dirname(pathURL) { return path.dirname(global.__filename(pathURL, true)) }; global.__require = function require(dir = import.meta.url) { return createRequire(dir) }
+import path, { join } from 'path';
+import { fileURLToPath, pathToFileURL } from 'url';
+import { platform } from 'process';
+global.__filename = function filename(pathURL = import.meta.url, rmPrefix = platform !== 'win32') { return rmPrefix ? /file:\/\/\//.test(pathURL) ? fileURLToPath(pathURL) : pathURL : pathToFileURL(pathURL).toString() }
+global.__dirname = function dirname(pathURL) { return path.dirname(global.__filename(pathURL, true)) }
+global.__require = function require(dir = import.meta.url) { return createRequire(dir) }
 
 import * as ws from 'ws';
 import {
   readdirSync,
+  rmSync,
   statSync,
   unlinkSync,
   existsSync,
   readFileSync,
   watch
 } from 'fs';
+
 import yargs from 'yargs';
 import { spawn } from 'child_process';
 import lodash from 'lodash';
+import chalk from 'chalk';
 import syntaxerror from 'syntax-error';
 import { tmpdir } from 'os';
 import { format } from 'util';
 import { makeWASocket, protoType, serialize } from './lib/simple.js';
 import { Low, JSONFile } from 'lowdb';
-import pino from 'pino';
 import {
   mongoDB,
   mongoDBV2
 } from './lib/mongoDB.js';
+import store from './lib/store-single.js';
 const {
-  useSingleFileAuthState,
+  //useSingleFileAuthState,
   DisconnectReason
-} = await import('@adiwajshing/baileys')
+} = (await import('@adiwajshing/baileys')).default
 
 const { CONNECTING } = ws
 const { chain } = lodash
@@ -42,22 +47,16 @@ protoType()
 serialize()
 
 global.API = (name, path = '/', query = {}, apikeyqueryname) => (name in global.APIs ? global.APIs[name] : name) + path + (query || apikeyqueryname ? '?' + new URLSearchParams(Object.entries({ ...query, ...(apikeyqueryname ? { [apikeyqueryname]: global.APIKeys[name in global.APIs ? global.APIs[name] : name] } : {}) })) : '')
-// global.Fn = function functionCallBack(fn, ...args) { return fn.call(global.conn, ...args) }
 global.timestamp = {
   start: new Date
 }
 
 const __dirname = global.__dirname(import.meta.url)
-
 global.opts = new Object(yargs(process.argv.slice(2)).exitProcess(false).parse())
-global.prefix = new RegExp('^[' + (opts['prefix'] || '‎xzXZ /i!#$%+£¢€¥^°=¶∆×÷π√✓©®:;?&.\\-').replace(/[|\\{}()[\]^$+*?.\-\^]/g, '\\$&') + ']')
+global.prefix = new RegExp('^[' + (opts['prefix'] || '‎xzXZ/i!#$%+£¢€¥^°=¶∆×÷π√✓©®:;?&.\\-').replace(/[|\\{}()[\]^$+*?.\-\^]/g, '\\$&') + ']')
 
-global.db = new Low(
-  /https?:\/\//.test(opts['db'] || '') ?
-    new cloudDBAdapter(opts['db']) : /mongodb(\+srv)?:\/\//i.test(opts['db']) ?
-      (opts['mongodbv2'] ? new mongoDBV2(opts['db']) : new mongoDB(opts['db'])) :
-      new JSONFile(`${opts._[0] ? opts._[0] + '_' : ''}database.json`)
-)
+// Read
+global.db = new Low(/https?:\/\//.test(opts['db'] || '') ? new cloudDBAdapter(opts['db']) : new JSONFile(`${opts._[0] ? opts._[0] + '_' : ''}database.json`))
 
 
 global.DATABASE = global.db // Backwards Compatibility
@@ -86,12 +85,11 @@ global.loadDatabase = async function loadDatabase() {
 loadDatabase()
 
 global.authFile = `${opts._[0] || 'session'}.data.json`
-const { state, saveState } = useSingleFileAuthState(global.authFile)
+const { state, saveState } = store.useSingleFileAuthState(global.authFile)
 
 const connectionOptions = {
-  printQRInTerminal: true,
-  auth: state,
-  // logger: pino({ level: 'trace' })
+printQRInTerminal: true,
+auth: state
 }
 
 global.conn = makeWASocket(connectionOptions)
@@ -106,19 +104,20 @@ if (!opts['test']) {
     } catch (e) { console.error(e) }
   }, 60 * 1000)
 }
+if (opts['server']) (await import('./server.js')).default(global.conn, PORT)
 
-
-function clearTmp() {
-  const tmp = [tmpdir(), join(__dirname, './tmp')]
-  const filename = []
-  tmp.forEach(dirname => readdirSync(dirname).forEach(file => filename.push(join(dirname, file))))
-  return filename.map(file => {
-    const stats = statSync(file)
-    if (stats.isFile() && (Date.now() - stats.mtimeMs >= 1000 * 60 * 3)) return unlinkSync(file) // 3 minutes
-    return false
-  })
+/* Clear */
+async function clearTmp() {
+  const tmp = './tmp'
+ readdirSync(tmp).forEach(f => rmSync(`${tmp}/${f}`));
 }
+setInterval(async () => {
+	var a = await clearTmp()
+	var pesan = "The tmp folder has been cleaned"
+	console.log(chalk.cyanBright(pesan))
+}, 180000)
 
+/* Update */
 async function connectionUpdate(update) {
   const { connection, lastDisconnect, isNewLogin } = update
   if (isNewLogin) conn.isInit = true
@@ -128,13 +127,13 @@ async function connectionUpdate(update) {
     global.timestamp.connect = new Date
   }
   if (global.db.data == null) loadDatabase()
+  if (connection == 'open') { console.log(chalk.yellow('Made by ' + author)) }
 }
-
 
 process.on('uncaughtException', console.error)
 // let strQuot = /(["'])(?:(?=(\\?))\2.)*?\1/
 
-let isInit = true;
+let isInit = true
 let handler = await import('./handler.js')
 global.reloadHandler = async function (restatConn) {
   try {
@@ -178,6 +177,7 @@ global.reloadHandler = async function (restatConn) {
   conn.ev.on('connection.update', conn.connectionUpdate)
   conn.ev.on('creds.update', conn.credsUpdate)
   isInit = false
+
   return true
 }
 
@@ -202,12 +202,12 @@ global.reload = async (_ev, filename) => {
   if (pluginFilter(filename)) {
     let dir = global.__filename(join(pluginFolder, filename), true)
     if (filename in global.plugins) {
-      if (existsSync(dir)) conn.logger.info(`re - require plugin '${filename}'`)
+      if (existsSync(dir)) conn.logger.info(` updated plugin - '${filename}'`)
       else {
-        conn.logger.warn(`deleted plugin '${filename}'`)
+        conn.logger.warn(`deleted plugin - '${filename}'`)
         return delete global.plugins[filename]
       }
-    } else conn.logger.info(`requiring new plugin '${filename}'`)
+    } else conn.logger.info(`new plugin - '${filename}'`)
     let err = syntaxerror(readFileSync(dir), filename, {
       sourceType: 'module',
       allowAwaitOutsideFunction: true
@@ -227,56 +227,48 @@ Object.freeze(global.reload)
 watch(pluginFolder, global.reload)
 await global.reloadHandler()
 
-// Quick Test
-
+/* QuickTest */
 async function _quickTest() {
-    let test = await Promise.all([
-        spawn('ffmpeg'),
-        spawn('ffprobe'),
-        spawn('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-filter_complex', 'color', '-frames:v', '1', '-f', 'webp', '-']),
-        spawn('convert'),
-        spawn('magick'),
-        spawn('gm'),
-        spawn('find', ['--version'])
-    ].map(p => {
-        return Promise.race([
-            new Promise(resolve => {
-                p.on('close', code => {
-                    resolve(code !== 127)
-                })
-            }),
-            new Promise(resolve => {
-                p.on('error', _ => resolve(false))
-            })
-        ])
-    }))
-    let [ffmpeg, ffprobe, ffmpegWebp, convert, magick, gm, find] = test
-    console.log(test)
-    let s = global.support = {
-        ffmpeg,
-        ffprobe,
-        ffmpegWebp,
-        convert,
-        magick,
-        gm,
-        find
-    }
-    // require('./lib/sticker').support = s
-    Object.freeze(global.support)
+  let test = await Promise.all([
+    spawn('ffmpeg'),
+    spawn('ffprobe'),
+    spawn('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-filter_complex', 'color', '-frames:v', '1', '-f', 'webp', '-']),
+    spawn('convert'),
+    spawn('magick'),
+    spawn('gm'),
+    spawn('find', ['--version'])
+  ].map(p => {
+    return Promise.race([
+      new Promise(resolve => {
+        p.on('close', code => {
+          resolve(code !== 127)
+        })
+      }),
+      new Promise(resolve => {
+        p.on('error', _ => resolve(false))
+      })
+    ])
+  }))
+  let [ffmpeg, ffprobe, ffmpegWebp, convert, magick, gm, find] = test
+  console.log(test)
+  let s = global.support = {
+    ffmpeg,
+    ffprobe,
+    ffmpegWebp,
+    convert,
+    magick,
+    gm,
+    find
+  }
+  
+  Object.freeze(global.support)
 
-    if (!s.ffmpeg) {
-        conn.logger.warn(`Silahkan Install ffmpeg Terlebih Dahulu Agar Bisa Mengirim Video`)
-    }
-
-    if (s.ffmpeg && !s.ffmpegWebp) {
-        conn.logger.warn('Sticker Mungkin Tidak Beranimasi tanpa libwebp di ffmpeg (--enable-ibwebp while compiling ffmpeg)')
-    }
-
-    if (!s.convert && !s.magick && !s.gm) {
-        conn.logger.warn('Fitur Stiker Mungkin Tidak Bekerja Tanpa imagemagick dan libwebp di ffmpeg belum terinstall (pkg install imagemagick)')
-    }
-
+  if (!s.ffmpeg) conn.logger.warn('Please install ffmpeg for sending videos (pkg install ffmpeg)')
+  if (s.ffmpeg && !s.ffmpegWebp) conn.logger.warn('Stickers may not animated without libwebp on ffmpeg (--enable-ibwebp while compiling ffmpeg)')
+  if (!s.convert && !s.magick && !s.gm) conn.logger.warn('Stickers may not work without imagemagick if libwebp on ffmpeg doesnt isntalled (pkg install imagemagick)')
 }
+
+/* QuickTest */
 _quickTest()
-    .then(() => conn.logger.info('☑️ Quick Test Done , nama file session ~> creds.json'))
-    .catch(console.error)
+  .then(() => conn.logger.info('Quick Test Done'))
+  .catch(console.error)
