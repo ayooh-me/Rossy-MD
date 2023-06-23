@@ -25,7 +25,7 @@
     ],
     "homepage": "https://github.com/Rossy-Chan/Rossy-MD",
     "author": {
-        "name": "FallZx"
+        "name": "Rossy-Chan"
     },
     "repository": {
         "type": "git",
@@ -36,7 +36,7 @@
     },
     "license": "GPL-3.0-or-later",
     "dependencies": {
-        "@adiwajshing/baileys": "npm:@whiskeysockets/baileys@^6.0.1",
+        "@adiwajshing/baileys": "npm:baileys@^6.0.8",
         "@adiwajshing/keyed-db": "^0.2.4",
         "@vitalets/google-translate-api": "^8.0.0",
         "@arugaz/ai2d": "^1.0.1-z.8",

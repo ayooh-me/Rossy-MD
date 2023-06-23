@@ -578,11 +578,11 @@ export async function handler(chatUpdate) {
                 else
                     m.exp += xp
                 if (!isPrems && plugin.limit && global.db.data.users[m.sender].limit < plugin.limit * 1) {
-                    this.reply(m.chat, `[🚩] Your Limit has expired *${usedPrefix}buy limit*`, m)
+                    this.reply(m.chat, `Limit Kamu Habis, Beli Dengan Cara *${usedPrefix}buy limit*`, m)
                     continue // Limit habis
                 }
                 if (plugin.level > _user.level) {
-                    this.reply(m.chat, `[🚩] *${plugin.level}* level required to use this command. Your level *${_user.level}🍟*\n*${plugin.level}* level is required to use this command. Your level is *${_user. level}🍟*`,)`, m)
+                    this.reply(m.chat, `Diperlukan Level ${plugin.level} Untuk Menggunakan Perintah Ini\n*Level Kamu:* ${_user.level}`, m)
                     continue // If the level has not been reached
                 }
                 let extra = {
@@ -624,7 +624,7 @@ export async function handler(chatUpdate) {
                             for (let [jid] of global.owner.filter(([number, _, isDeveloper]) => isDeveloper && number)) {
                                 let data = (await conn.onWhatsApp(jid))[0] || {}
                                 if (data.exists)
-                                    m.reply(`*🚩 Plugin:* ${m.plugin}\n*🍟 Sender:* ${m.sender}\n*👀 Chat:* ${m.chat}\n*🍔 Command:* ${usedPrefix}${command} ${args.join(' ')}\n📄 *Error Logs:*\n\n\`\`\`${text}\`\`\``.trim(), data.jid)
+                                    m.reply(`*🗂️ Plugin:* ${m.plugin}\n*👤 Sender:* ${m.sender}\n*💬 Chat:* ${m.chat}\n*💻 Command:* ${usedPrefix}${command} ${args.join(' ')}\n📄 *Error Logs:*\n\n\`\`\`${text}\`\`\``.trim(), data.jid)
                             }
                         m.reply(text)
                     }
@@ -806,34 +806,31 @@ let fkon = { key: { fromMe: false, participant: `${m.sender.split`@`[0]}@s.whats
   let nyaww = 'https://telegra.ph/file/5e35d7d69f940141db04c.jpg'
   let fotodaftar = 'https://telegra.ph/file/60990121dc5bcd2a376a1.jpg'
 let msg = {
-        rowner: '*ᴏɴʟʏ ᴅᴇᴠᴇʟᴏᴘᴇʀ* •🚩 This command can only be used by the *Creator of the bot*',
-        owner: '*ᴏɴʟʏ ᴏᴡɴᴇʀ* •🚩 This command can only be used by the *Bot Owner',
-        mods: '*ᴏɴʟʏ ᴍᴏᴅᴇʀᴀᴛᴏʀ* •🚩 This function is only for *For Bot moderators*',
-        premium: '*ᴏɴʟʏ ᴘʀᴇᴍɪᴜᴍ* •🚩 This command is for *Premium members only',
-        group: '*ɢʀᴏᴜᴘ ᴄʜᴀᴛ* •🚩 This command can only be used in groups',
-        private: '*ᴘʀɪᴠᴀᴛᴇ ᴄʜᴀᴛ* •🚩 This command can only be used in the *private chat of the Bot*',
-        admin: '*ᴏɴʟʏ ᴀᴅᴍɪɴ* •🚩 This command is only for *Group Admins*',
-        botAdmin: '*ᴏɴʟʏ ʙᴏᴛ ᴀᴅᴍɪɴ* •🚩 To use this command I must be *Admin!*',
-        restrict: '*ʀᴇsᴛʀɪᴄᴛ* •🚩 This feature is *disabled*',
+        rowner: 'Ngapain Kak?, Fitur Ini Khusus Developerku',
+        owner: 'Ngapain Kak?, Fitur Ini Khusus Ownerku',
+        mods: 'Fitur Ini Khusus Moderator',
+        premium: 'Fitur Ini Khusus Premium User',
+        group: 'Fitur Ini Hanya Bisa Digunakan Di Grup',       botAdmin: 'Jadikan Lia Sebagai Admin Terlebih Dahulu Agar Bisa Menggunakan Fitur Ini',
+        restrict: 'Restict Belum Di Nyalakan Untuk Chat Ini'}[type]
   if (msg) return conn.sendMessage(m.chat, { image : { url : nyaww }, caption : msg }, m)
   let daftar = {
-  unreg: '*ʏᴏᴜ ᴀʀᴇ ɴᴏᴛ ʀᴇɢɪsᴛᴇʀᴇᴅ ʏᴇᴛ* •🚩  Sign in to use this feature Typing:\n\n*/reg name.age*\n\n🍟 Example : */reg Ayodya.16*', 
+  unreg: 'Hai Kak, Sebelum Menggunakan Fiturku, Kamu Harus Daftar Ke Database Terlebih Dahulu\nCaranya Ketik .daftar namakamu.umurkamu\nContoh : .daftar lia.18'}[type]
   if (daftar) return conn.sendMessage(m.chat, { image : { url : fotodaftar }, caption : daftar }, m)
         }
 function ucapan() {
   const time = moment.tz('Asia/Jakarta').format('HH')
-  let res = "Are you crazyy? 🥱"
+  let res = "Sudah Dini Hari Kok Belum Tidur Kak? 🥱"
   if (time >= 4) {
-    res = "Good morning 🌄"
+    res = "Pagi Kak 🌄"
   }
   if (time >= 10) {
-    res = "Good afternoon ☀️"
+    res = "Selamat Siang Kak ☀️"
   }
   if (time >= 15) {
-    res = "Good evening 🌇"
+    res = "Selamat Sore Kak 🌇"
   }
   if (time >= 18) {
-    res = "Good night 🌙"
+    res = "Malam Kak 🌙"
   }
   return res
 }
